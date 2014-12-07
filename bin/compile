@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# bin/compile <build-dir> <cache-dir>
+
+# fail fast
+set -e
+
+# debug
+# set -x
+
+shopt -s extglob
+
+function error() {
+  echo " !     $*" >&2
+  exit 1
+}
+
+function indent() {
+  c='s/^/       /'
+  case $(uname) in
+    Darwin) sed -l "$c";;
+    *)      sed -u "$c";;
+  esac
+}
+
+# clean up leaking environment
+unset GIT_DIR
+
+# parse and derive params
+BUILD_DIR=$1
+CACHE_DIR="$2/vendor"
+LP_DIR=`cd $(dirname $0); cd ..; pwd`
+BUILDPACK_DIR="$(dirname $(dirname $0))"
+
+# config
+VERSION="0.0.0"
+BUILD_PACK_VERSION="2014xxxx-xxxx"
+PROGRAM_NAME="some-program"
+
+S3_BUCKET="s3-us-west-1.amazonaws.com/heroku-buildpack-XXXX"
+BINARIES="http://${S3_BUCKET}/SOME-PROGRAM-${VERSION}-binaries-${BUILD_PACK_VERSION}.tar.gz"
+
+echo Binary is at $BINARIES
+
+VENDOR_DIR="$BUILD_DIR/vendor"
+BASE_DIR="$VENDOR_DIR/$PROGRAM_NAME"
+
+mkdir -p $CACHE_DIR
+
+# vendor R into the slug
+echo "Vendoring PostgreSQL $VERSION" | indent
+
+# download and unpack binaries
+echo "Downloading and unpacking PostgreSQL binaries" | indent
+mkdir -p $BASE_DIR && curl $BINARIES -s -o - | tar xzf - -C $BASE_DIR
+
+mkdir -p /app/vendor/$PROGRAM_NAME
+cp -R $BASE_DIR/* /app/vendor/$PROGRAM_NAME
+
+echo "$PROGRAM_NAME $VERSION successfully installed" | indent
+
+# need to copy binaries back so that any installed packages are included in the slug
+cp -R /app/vendor/$PROGRAM_NAME/* $BASE_DIR

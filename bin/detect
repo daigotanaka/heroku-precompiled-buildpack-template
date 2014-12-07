@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# bin/detect <build-dir>
+
+BUILD_DIR=$1
+
+# Exit early if app does not want this application
+# if [ ! -f $BUILD_DIR/some-condition ]; then
+#   exit 1
+# fi
+
+echo Detected some-application
+exit 0
